@@ -175,7 +175,7 @@ describe('the type guards verbosity', () => {
       'isFacebookUser'
     )
     const testValue = {
-      botId: 'facebook_apac_ccommerce_staging',
+      botId: 'hello',
       facebookId: 'abc123',
       firstName: null,
       lastName: 1234,
