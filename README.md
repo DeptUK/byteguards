@@ -1,4 +1,4 @@
-#BYTE/DEPT® TypeGuards
+# BYTE/DEPT® TypeGuards
 ## (AKA ByteGuards)
 
 ![](https://img.shields.io/badge/Coverage-88%25-83A603.svg?prefix=$statements$)
