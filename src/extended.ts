@@ -1,0 +1,398 @@
+import { TypeguardNode } from './typeguard-node'
+
+type TypeguardLogger = (input: string) => void
+
+export const typeguardLogger: TypeguardLogger = (input: string): void => {
+  console.log(input)
+}
+
+/**
+ * Represents a type guard from `unknown` to `A`,
+ */
+export type Is<A> = (a: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => a is A
+
+const updateTracker = (type: string, u: unknown, result: boolean, tracker?: TypeguardNode | number): void => {
+  if (tracker && tracker instanceof TypeguardNode) {
+    tracker.type = type
+    tracker.foundType = u === null ? 'null' : typeof u
+    tracker.valid = result
+  }
+}
+
+const parentIsUnion = (u?: TypeguardNode | number): u is TypeguardNode => {
+  return u instanceof TypeguardNode && u.parent instanceof TypeguardNode && u.parent.type === 'union'
+}
+
+/**
+ * @deprecated This is no longer required as guards are now curried correctly
+ Array.filter takes an argument of the form (u, i?, arr?) => boolean, where i is the index of the element, and arr is
+ the array being filtered. Now that our typeguards take the form (u, tracker?, logger?) => boolean, they can't be
+ curried into things like array.filter() because array.filter doesn't like the fact that the second argument in the
+ function can't be a number. Therefore, we need a way to get rid that second argument.
+ */
+export const curryGuard =
+  <T>(isA: Is<T>) => isA
+
+/** Use this when you need a type guard but don't care about the result. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const isUnknown: Is<unknown> = (u: unknown, tracker?: TypeguardNode | number): u is unknown => {
+  return true
+}
+
+export const isBigint: Is<bigint> = (u: unknown, tracker?: TypeguardNode | number): u is bigint => {
+  const result = typeof u === 'bigint'
+  updateTracker('BigInt', u, result, tracker)
+  return result
+}
+
+export const isBoolean: Is<boolean> = (u: unknown, tracker?: TypeguardNode | number): u is boolean => {
+  const result = typeof u === 'boolean'
+  updateTracker('Boolean', u, result, tracker)
+  return result
+}
+
+export const isString: Is<string> = (u: unknown, tracker?: TypeguardNode | number): u is string => {
+  const result = typeof u === 'string'
+  updateTracker('String', u, result, tracker)
+  return result
+}
+
+export const isNumber: Is<number> = (u: unknown, tracker?: TypeguardNode | number): u is number => {
+  const result = typeof u === 'number'
+  updateTracker('Number', u, result, tracker)
+  return result
+}
+
+export const isObject: Is<object> = (u: unknown, tracker?: TypeguardNode | number): u is object => {
+  const result = typeof u === 'object'
+  updateTracker('Object', u, result, tracker)
+  return result
+}
+
+export const isNull: Is<null> = (u: unknown, tracker?: TypeguardNode | number): u is null => {
+  const result = u === null
+  updateTracker('Null', u, result, tracker)
+  return result
+}
+
+export const isUndefined = (u: unknown, tracker?: TypeguardNode | number): u is undefined => {
+  const result = u === undefined
+  updateTracker('Undefined', u, result, tracker)
+  return result
+}
+
+export const isBuffer = (u: unknown, tracker?: TypeguardNode): u is Buffer => {
+  const result = u instanceof Buffer
+  updateTracker('Buffer', u, result, tracker)
+  return result
+}
+
+export const isBlob: Is<Blob> = (u: unknown): u is Blob => u instanceof Blob
+
+const isFunction = (u: unknown, tracker?: TypeguardNode): u is Function => {
+  const result = typeof u === 'function'
+  updateTracker('Function', u, result, tracker)
+  return result
+}
+
+export const isLiteral =
+  <A>(...as: A[]): Is<A> =>
+    (u: unknown, tracker?: TypeguardNode | number): u is A => {
+      for (const a of as) {
+        const newChild = new TypeguardNode(`${a}`, 'Literal')
+        tracker && tracker instanceof TypeguardNode && tracker.addOrChild(newChild)
+        const result = a === u
+        newChild.valid = result
+        if (result) return true
+      }
+      return false
+    }
+
+/**
+ * Helper to remove `undefined` from the allowed type,
+ * @param isa the type guard for `A`
+ */
+export const isRequired =
+  <A>(isa: Is<A | undefined>) =>
+    (u: unknown, tracker?: TypeguardNode): u is A =>
+      !isUndefined(u, tracker) && isa(u, tracker)
+
+/**
+ * Helper to create a type guard for arrays of type `A`.
+ * @param isa type guard for the elements of the array
+ */
+export const isArray =
+  <A>(isa: Is<A>) =>
+    (u: unknown, tracker?: TypeguardNode | number): u is A[] => {
+      if (!Array.isArray(u)) {
+        updateTracker('Array', u, false, tracker)
+        return false
+      }
+      for (const element of u) {
+        const newChild = new TypeguardNode('ArrayElement', 'tbd')
+        tracker instanceof TypeguardNode && tracker.addAndChild(newChild)
+        if (!isa(element, newChild)) {
+          return false
+        }
+      }
+      return true
+    }
+
+export const isSetOf =
+  <A>(isa: Is<A>) =>
+    (u: unknown): u is Set<A> =>
+      u instanceof Set && [...u].every(curryGuard(isa))
+
+export const isUndefinedOrNull: Is<undefined | null> = isUnion(isUndefined, isNull)
+
+/**
+ * Helper to create a type guard for an object structure `O`.
+ *
+ * **Danger:** this won't be able to warn you if you forget to check for optional fields,
+ * or if you specify additional non-existent fields, so don't do either of those things.
+ *
+ * @param isas a struct describing the type guards for the fields of `O`
+ * @param name the name of the structure
+ * @example
+ * type Foo = {
+ *   s: string
+ *   n: number
+ * }
+ * const isFoo: Is<Foo> = isStruct({
+ *   s: isString,
+ *   n: isNumber,
+ * })
+ */
+export const isStruct = <O extends { [key: string]: unknown }>(
+  isas: { [K in keyof O]: Is<O[K]> },
+  name?: string
+): Is<O> => {
+  if (!process.env.VERBOSE_TYPEGUARDS || process.env.VERBOSE_TYPEGUARDS.toLowerCase() === 'false') {
+    return (o): o is O => {
+      if (o === null || typeof o !== 'object') return false
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const a = o as any
+      for (const k in isas) {
+        if (!isas[k](a[k])) return false
+      }
+      return true
+    }
+  }
+
+  return (o, parentTracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>): o is O => {
+    if (parentTracker && parentTracker instanceof TypeguardNode) {
+      parentTracker.name = name || 'struct'
+    }
+    const tracker =
+      parentTracker instanceof TypeguardNode
+        ? parentTracker
+        : new TypeguardNode(name || 'ROOT', 'struct')
+    tracker.type = 'struct'
+    if (o === null || typeof o !== 'object') {
+      tracker.foundType = typeof o
+      tracker.valid = false
+      return false
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const a = o as any
+    for (const k in isas) {
+      const newChild = new TypeguardNode(k, 'tbd')
+      tracker.addAndChild(newChild)
+      if (!isas[k](a[k], newChild)) {
+        if (!parentTracker && isFunction(logger)) {
+          logger(tracker.getOffender())
+        }
+        if(parentIsUnion(parentTracker)) {
+          parentTracker.addDetails(tracker.getOffender())
+        }
+        return false
+      }
+    }
+    return true
+  }
+}
+/**
+ * Helper to create type guards for records.
+ *
+ * **Note:** the keys are converted to strings (by {@link Object.keys}) before being tested.
+ *
+ * @param isK type guard for the **name** of the record keys
+ * @param isV type guard for the record values
+ */
+export const isRecord =
+  <K extends PropertyKey, V>(isK: Is<K>, isV: Is<V>): Is<Record<K, V>> =>
+    (r): r is Record<K, V> => {
+      if (r === null || typeof r !== 'object' || r.constructor !== Object) return false
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const a = r as any
+      for (const k in a) {
+        if (!isK(k) || !isV(a[k])) return false
+      }
+      return true
+    }
+
+export function isUnion<A, B>(isA: Is<A>, isB: Is<B>): (u: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A | B
+export function isUnion<A, B, C>(isA: Is<A>, isB: Is<B>, isC: Is<C>): (u: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A | B | C
+export function isUnion<A, B, C, D>(isA: Is<A>, isB: Is<B>, isC: Is<C>, isD: Is<D>): (u: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A | B | C | D
+export function isUnion<A, B, C, D, E>(
+  isA: Is<A>,
+  isB: Is<B>,
+  isC: Is<C>,
+  isD: Is<D>,
+  isE: Is<E>
+): (u: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A | B | C | D | E
+export function isUnion<A, B, C, D, E, F>(
+  isA: Is<A>,
+  isB: Is<B>,
+  isC: Is<C>,
+  isD: Is<D>,
+  isE: Is<E>,
+  isF: Is<F>
+): (u: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A | B | C | D | E | F
+export function isUnion<A, B, C, D, E, F, G>(
+  isA: Is<A>,
+  isB: Is<B>,
+  isC: Is<C>,
+  isD: Is<D>,
+  isE: Is<E>,
+  isF: Is<F>,
+  isG: Is<G>
+): (u: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A | B | C | D | E | F | G
+export function isUnion<A, B, C, D, E, F, G, H>(
+  isA: Is<A>,
+  isB: Is<B>,
+  isC: Is<C>,
+  isD: Is<D>,
+  isE: Is<E>,
+  isF: Is<F>,
+  isG: Is<G>,
+  isH: Is<H>
+): (u: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A | B | C | D | E | F | G | H
+/**
+ * Helper to create a type guard for a union with up to 5 options.
+ *
+ * @example
+ * type Foo = string | number
+ * const isFoo: Is<Foo> = isUnion(isString, isNumber)
+ * @example
+ * type Bar = string | number | null
+ * const isBar: Is<Bar> = isUnion(isString, isNumber, isNull)
+ *
+ * You can combine them if you need more than 5 options, like this:
+ * @example
+ * const isBar2: Is<Bar> = isUnion(isString, isUnion(isNumber, isBigint))
+ */
+export function isUnion<A, B, C, D, E, F, G>(
+  isA: Is<A>,
+  isB: Is<B>,
+  isC?: Is<C>,
+  isD?: Is<D>,
+  isE?: Is<E>,
+  isF?: Is<F>,
+  isG?: Is<G>
+) {
+  return (u: unknown, parentTacker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>): u is A | B | C | D | E | F | G => {
+    const allTypeGuards = [isA, isB, isC, isD, isE, isF, isG]
+    const tracker = parentTacker instanceof TypeguardNode ? parentTacker : new TypeguardNode('ROOT', 'union')
+    tracker.type = 'union'
+    for (const tg of allTypeGuards) {
+      if (tg) {
+        const childNode = new TypeguardNode('Union', 'unionElement')
+        tracker.addOrChild(childNode)
+        if (tg(u, childNode, logger)) {
+          return true
+        }
+      }
+    }
+    if (tracker.isTopLevel && isFunction(logger)) {
+      logger(tracker.details)
+      logger(tracker.getOffender())
+    }
+    return false
+  }
+}
+
+export function isIntersection<A, B>(
+  isA: Is<A>,
+  isB: Is<B>
+): (u: unknown, parentTracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A & B
+export function isIntersection<A, B, C>(
+  isA: Is<A>,
+  isB: Is<B>,
+  isC: Is<C>
+): (u: unknown, parentTracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A & B & C
+/**
+ * Helper to create a type guard for the intersection of up to 3 types.
+ * @example
+ * interface Foo { a: string }
+ * const isFoo: Is<Foo> = isStruct({a: isString})
+ *
+ * interface Bar extends Foo { b: number }
+ * const isBar: Is<Bar> = isIntersection(isFoo, isStruct({ b: isNumber }))
+ */
+export function isIntersection<A, B, C>(isA: Is<A>, isB: Is<B>, isC?: Is<C>) {
+  return (u: unknown, parentTracker?: TypeguardNode, logger?: TypeguardLogger): u is A & B & C => {
+    const tracker = parentTracker || new TypeguardNode('ROOT', 'Intersection')
+    for (const guard of [isA, isB, isC]) {
+      if (!guard) {
+        return true
+      }
+      if (!guard(u, tracker)) {
+        if (!parentTracker && logger) {
+          logger(tracker.getOffender())
+        }
+        return false
+      }
+      /*
+        Because this is a test on the same object, rather than different properties, debugging is better with a single
+        tracker, but this can get broken if both of the intersections are union types, so we need this.
+       */
+      tracker.resetOr()
+    }
+    return true
+  }
+}
+
+/**
+ * Helper to add `null` to the allowed type.
+ * @param isa the type guard for `A`
+ */
+export const isNullable = <A>(isa: Is<A>) => isUnion(isa, isNull)
+
+/**
+ * Helper to add `undefined` to the allowed type.
+ * @param isa the type guard for `A`
+ */
+export const isOptional = <A>(isa: Is<A>) => isUnion(isa, isUndefined)
+
+/**
+ * Helper to create a type guard for a tuple of type `A`.
+ * @param length length of the tuple
+ */
+export function isArrayWithLength(length: 1): <T>(isT: Is<T>) => (u: unknown) => u is [T]
+export function isArrayWithLength(length: 2): <T>(isT: Is<T>) => (u: unknown) => u is [T, T]
+export function isArrayWithLength(length: 3): <T>(isT: Is<T>) => (u: unknown) => u is [T, T, T]
+export function isArrayWithLength(length: 4): <T>(isT: Is<T>) => (u: unknown) => u is [T, T, T, T]
+export function isArrayWithLength(length: number) {
+  return <T>(isT: Is<T>) =>
+    (u: unknown) =>
+      isArray(isT)(u) && u.length === length
+}
+
+export const hasValuesOf =
+  <A>(isA: Is<A>) =>
+    (u: unknown): u is { [x: string]: A } =>
+      isRecord(isString, isA)(u)
+
+/**
+ * This needs some explanation: this is using the JS error handler to generate a name for an anonymous function
+ * @param {Is<T>} f
+ * @returns {string}
+ */
+export const functionName = <T>(f: Is<T>): string => {
+  if (f.name) return f.name
+  return 'isCustomStruct'
+}

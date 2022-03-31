@@ -1,0 +1,24 @@
+{
+  "include": [
+    "./src/**/*.ts"
+  ],
+  "compilerOptions": {
+    "declaration": true,
+    "declarationDir": "./lib",
+    "module": "commonjs",
+    "target": "es5",
+    "noImplicitAny": true,
+    "strict": true,
+    "outDir": "./lib",
+    "sourceMap": true,
+    "downlevelIteration": true,
+    "lib": [
+      "es5",
+      "es2019",
+      "dom"
+    ]
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}
