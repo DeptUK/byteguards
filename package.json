@@ -1,6 +1,6 @@
 {
-  "name": "deptypeguards",
-  "version": "1.0.0",
+  "name": "@byte.london/deptypeguards",
+  "version": "1.0.1",
   "description": "",
   "main": "lib/extended.js",
   "directories": {
@@ -10,7 +10,7 @@
     "test": "VERBOSE_TYPEGUARDS=true nyc --reporter=json-summary mocha --require ts-node/register --ui bdd **/*.test.ts",
     "coverage:badge": "coverage-badge-creator"
   },
-  "author": "",
+  "author": "byte.london",
   "license": "ISC",
   "devDependencies": {
     "@js-joda/core": "^5.2.0",

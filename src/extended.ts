@@ -334,14 +334,14 @@ export function isIntersection<A, B, C>(
  * const isBar: Is<Bar> = isIntersection(isFoo, isStruct({ b: isNumber }))
  */
 export function isIntersection<A, B, C>(isA: Is<A>, isB: Is<B>, isC?: Is<C>) {
-  return (u: unknown, parentTracker?: TypeguardNode, logger?: TypeguardLogger): u is A & B & C => {
-    const tracker = parentTracker || new TypeguardNode('ROOT', 'Intersection')
+  return (u: unknown, parentTracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>): u is A & B & C => {
+    const tracker = parentTracker instanceof TypeguardNode ? parentTracker : new TypeguardNode('ROOT', 'Intersection')
     for (const guard of [isA, isB, isC]) {
       if (!guard) {
         return true
       }
       if (!guard(u, tracker)) {
-        if (!parentTracker && logger) {
+        if (!parentTracker && logger && typeof logger  === 'function') {
           logger(tracker.getOffender())
         }
         return false
