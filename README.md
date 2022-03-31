@@ -9,5 +9,5 @@ We have found it to be superior to other libraries such as io-ts and Spicery, an
 
 It was inspired by [this article](https://web.archive.org/web/20190204094636/https://lorefnon.tech/2018/03/25/typescript-and-validations-at-runtime-boundaries/), written back in 2018.
 
-##License
+## License
 Distributed under the MIT License. See LICENSE.txt for more information.
