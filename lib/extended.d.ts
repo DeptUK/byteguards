@@ -22,21 +22,21 @@ export declare const isString: Is<string>;
 export declare const isNumber: Is<number>;
 export declare const isObject: Is<object>;
 export declare const isNull: Is<null>;
-export declare const isUndefined: (u: unknown, tracker?: number | TypeguardNode | undefined) => u is undefined;
-export declare const isBuffer: (u: unknown, tracker?: TypeguardNode | undefined) => u is Buffer;
+export declare const isUndefined: Is<undefined>;
+export declare const isBuffer: Is<Buffer>;
 export declare const isBlob: Is<Blob>;
 export declare const isLiteral: <A>(...as: A[]) => Is<A>;
 /**
  * Helper to remove `undefined` from the allowed type,
  * @param isa the type guard for `A`
  */
-export declare const isRequired: <A>(isa: Is<A | undefined>) => (u: unknown, tracker?: TypeguardNode | undefined) => u is A;
+export declare const isRequired: <A>(isa: Is<A | undefined>) => (u: unknown, tracker?: number | TypeguardNode | undefined) => u is A;
 /**
  * Helper to create a type guard for arrays of type `A`.
  * @param isa type guard for the elements of the array
  */
-export declare const isArray: <A>(isa: Is<A>) => (u: unknown, tracker?: number | TypeguardNode | undefined) => u is A[];
-export declare const isSetOf: <A>(isa: Is<A>) => (u: unknown) => u is Set<A>;
+export declare const isArray: <A>(isa: Is<A>) => Is<A[]>;
+export declare const isSetOf: <A>(isa: Is<A>) => Is<Set<A>>;
 export declare const isUndefinedOrNull: Is<undefined | null>;
 /**
  * Helper to create a type guard for an object structure `O`.

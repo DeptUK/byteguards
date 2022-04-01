@@ -75,13 +75,13 @@ export const isNull: Is<null> = (u: unknown, tracker?: TypeguardNode | number): 
   return result
 }
 
-export const isUndefined = (u: unknown, tracker?: TypeguardNode | number): u is undefined => {
+export const isUndefined: Is<undefined> = (u: unknown, tracker?: TypeguardNode | number): u is undefined => {
   const result = u === undefined
   updateTracker('Undefined', u, result, tracker)
   return result
 }
 
-export const isBuffer = (u: unknown, tracker?: TypeguardNode): u is Buffer => {
+export const isBuffer: Is<Buffer> = (u: unknown, tracker?: TypeguardNode | number): u is Buffer => {
   const result = u instanceof Buffer
   updateTracker('Buffer', u, result, tracker)
   return result
@@ -89,7 +89,7 @@ export const isBuffer = (u: unknown, tracker?: TypeguardNode): u is Buffer => {
 
 export const isBlob: Is<Blob> = (u: unknown): u is Blob => u instanceof Blob
 
-const isFunction = (u: unknown, tracker?: TypeguardNode): u is Function => {
+const isFunction: Is<Function> = (u: unknown, tracker?: TypeguardNode | number): u is Function => {
   const result = typeof u === 'function'
   updateTracker('Function', u, result, tracker)
   return result
@@ -114,7 +114,7 @@ export const isLiteral =
  */
 export const isRequired =
   <A>(isa: Is<A | undefined>) =>
-    (u: unknown, tracker?: TypeguardNode): u is A =>
+    (u: unknown, tracker?: TypeguardNode | number): u is A =>
       !isUndefined(u, tracker) && isa(u, tracker)
 
 /**
@@ -122,7 +122,7 @@ export const isRequired =
  * @param isa type guard for the elements of the array
  */
 export const isArray =
-  <A>(isa: Is<A>) =>
+  <A>(isa: Is<A>): Is<Array<A>> =>
     (u: unknown, tracker?: TypeguardNode | number): u is A[] => {
       if (!Array.isArray(u)) {
         updateTracker('Array', u, false, tracker)
@@ -139,7 +139,7 @@ export const isArray =
     }
 
 export const isSetOf =
-  <A>(isa: Is<A>) =>
+  <A>(isa: Is<A>): Is<Set<A>> =>
     (u: unknown): u is Set<A> =>
       u instanceof Set && [...u].every(curryGuard(isa))
 
@@ -293,7 +293,7 @@ export function isUnion<A, B, C, D, E, F, G>(
   isE?: Is<E>,
   isF?: Is<F>,
   isG?: Is<G>
-) {
+): Is<A | B | C | D | E | F | G> {
   return (u: unknown, parentTacker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>): u is A | B | C | D | E | F | G => {
     const allTypeGuards = [isA, isB, isC, isD, isE, isF, isG]
     const tracker = parentTacker instanceof TypeguardNode ? parentTacker : new TypeguardNode('ROOT', 'union')
@@ -333,7 +333,7 @@ export function isIntersection<A, B, C>(
  * interface Bar extends Foo { b: number }
  * const isBar: Is<Bar> = isIntersection(isFoo, isStruct({ b: isNumber }))
  */
-export function isIntersection<A, B, C>(isA: Is<A>, isB: Is<B>, isC?: Is<C>) {
+export function isIntersection<A, B, C>(isA: Is<A>, isB: Is<B>, isC?: Is<C>): Is<A & B & C> {
   return (u: unknown, parentTracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>): u is A & B & C => {
     const tracker = parentTracker instanceof TypeguardNode ? parentTracker : new TypeguardNode('ROOT', 'Intersection')
     for (const guard of [isA, isB, isC]) {
