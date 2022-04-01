@@ -1,6 +1,6 @@
 {
-  "name": "@byte.london/deptypeguards",
-  "version": "1.0.2",
+  "name": "@byte.london/byteguards",
+  "version": "1.0.3",
   "description": "",
   "main": "lib/extended.js",
   "directories": {
