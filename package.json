@@ -3,6 +3,7 @@
   "version": "1.0.3",
   "description": "",
   "main": "lib/extended.js",
+  "types": "lib/extended.d.ts",
   "directories": {
     "test": "test"
   },
