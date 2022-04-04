@@ -1,6 +1,6 @@
 {
   "name": "@byte.london/byteguards",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "",
   "main": "lib/extended.js",
   "types": "lib/extended.d.ts",
@@ -8,7 +8,7 @@
     "test": "test"
   },
   "scripts": {
-    "prepublish": "tsc",
+    "prepare": "tsc",
     "test": "VERBOSE_TYPEGUARDS=true nyc --reporter=json-summary mocha --require ts-node/register --ui bdd **/*.test.ts",
     "coverage:badge": "coverage-badge-creator"
   },
