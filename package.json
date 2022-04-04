@@ -8,6 +8,7 @@
     "test": "test"
   },
   "scripts": {
+    "prepublish": "tsc",
     "test": "VERBOSE_TYPEGUARDS=true nyc --reporter=json-summary mocha --require ts-node/register --ui bdd **/*.test.ts",
     "coverage:badge": "coverage-badge-creator"
   },
