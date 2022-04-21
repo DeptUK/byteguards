@@ -79,7 +79,7 @@ export const isStruct = <O extends { [key: string]: unknown }>(isas: { [K in key
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const a = o as any
-  for (const k in isas) {
+  for (const k of Object.getOwnPropertyNames(isas)) {
     if (!isas[k](a[k])){
       return false
     }

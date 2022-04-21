@@ -35,7 +35,7 @@ export const curryGuard =
 
 /** Use this when you need a type guard but don't care about the result. */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const isUnknown: Is<unknown> = (u: unknown, tracker?: TypeguardNode | number): u is unknown => {
+export const isUnknown: Is<unknown> = (u: unknown, _tracker?: TypeguardNode | number): u is unknown => {
   return true
 }
 
@@ -141,7 +141,7 @@ export const isArray =
 export const isSetOf =
   <A>(isa: Is<A>): Is<Set<A>> =>
     (u: unknown): u is Set<A> =>
-      u instanceof Set && [...u].every(curryGuard(isa))
+      u instanceof Set && [...u].every(isa)
 
 export const isUndefinedOrNull: Is<undefined | null> = isUnion(isUndefined, isNull)
 
@@ -173,7 +173,7 @@ export const isStruct = <O extends { [key: string]: unknown }>(
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const a = o as any
-      for (const k in isas) {
+      for (const k of Object.getOwnPropertyNames(isas)) {
         if (!isas[k](a[k])) return false
       }
       return true
@@ -197,7 +197,7 @@ export const isStruct = <O extends { [key: string]: unknown }>(
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const a = o as any
-    for (const k in isas) {
+    for (const k of Object.getOwnPropertyNames(isas)) {
       const newChild = new TypeguardNode(k, 'tbd')
       tracker.addAndChild(newChild)
       if (!isas[k](a[k], newChild)) {
@@ -389,10 +389,10 @@ export const hasValuesOf =
 
 /**
  * This needs some explanation: this is using the JS error handler to generate a name for an anonymous function
- * @param {Is<T>} f
+ * @param {Is<>} f
  * @returns {string}
  */
-export const functionName = <T>(f: Is<T>): string => {
+export const functionName = (f: Function): string => {
   if (f.name) return f.name
   return 'isCustomStruct'
 }
