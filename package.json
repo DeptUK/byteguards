@@ -1,6 +1,6 @@
 {
   "name": "@byte.london/byteguards",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "",
   "main": "lib/extended.js",
   "types": "lib/extended.d.ts",
