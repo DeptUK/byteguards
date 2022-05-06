@@ -326,6 +326,8 @@ export const isNullable = <A>(isa: Is<A>) => isUnion(isa, isNull)
  */
 export const isOptional = <A>(isa: Is<A>) => isUnion(isa, isUndefined)
 
+export const isDefined = <T = unknown>(u: T): u is NonNullable<T> => typeof u !== 'undefined' && u !== null
+
 /**
  * Helper to create a type guard for a tuple of type `A`.
  * @param length length of the tuple

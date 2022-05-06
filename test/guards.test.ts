@@ -17,7 +17,7 @@ import {
   isArrayWithLength,
   hasValuesOf,
   isBigint, isUnknown,
-  isUndefinedOrNull
+  isUndefinedOrNull, isDefined
 } from '../src/extended'
 import * as Sinon from 'sinon'
 import { isAttributeValue } from './fixtures/attribute-values'
@@ -358,5 +358,21 @@ describe('the type guards verbosity', () => {
     expect(tg(testValue)).to.be.false
     expect(tg(secondTestValue)).to.be.false
     expect(tg(thirdTestValue)).to.be.true
+  })
+
+  describe('legacy tests', () => {
+    it('should test for buffers', () => {
+      expect(isDefined(null)).to.be.false
+      expect(isDefined(undefined)).to.be.false
+    })
+
+    it('should test for defined values', () => {
+      expect(isDefined(null)).to.be.false
+      expect(isDefined(undefined)).to.be.false
+      expect(isDefined('')).to.be.true
+      expect(isDefined(0)).to.be.true
+      expect(isDefined([])).to.be.true
+      expect(isDefined({})).to.be.true
+    })
   })
 })
