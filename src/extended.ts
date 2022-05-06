@@ -234,43 +234,8 @@ export const isRecord =
       return true
     }
 
-export function isUnion<A, B>(isA: Is<A>, isB: Is<B>): (u: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A | B
-export function isUnion<A, B, C>(isA: Is<A>, isB: Is<B>, isC: Is<C>): (u: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A | B | C
-export function isUnion<A, B, C, D>(isA: Is<A>, isB: Is<B>, isC: Is<C>, isD: Is<D>): (u: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A | B | C | D
-export function isUnion<A, B, C, D, E>(
-  isA: Is<A>,
-  isB: Is<B>,
-  isC: Is<C>,
-  isD: Is<D>,
-  isE: Is<E>
-): (u: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A | B | C | D | E
-export function isUnion<A, B, C, D, E, F>(
-  isA: Is<A>,
-  isB: Is<B>,
-  isC: Is<C>,
-  isD: Is<D>,
-  isE: Is<E>,
-  isF: Is<F>
-): (u: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A | B | C | D | E | F
-export function isUnion<A, B, C, D, E, F, G>(
-  isA: Is<A>,
-  isB: Is<B>,
-  isC: Is<C>,
-  isD: Is<D>,
-  isE: Is<E>,
-  isF: Is<F>,
-  isG: Is<G>
-): (u: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A | B | C | D | E | F | G
-export function isUnion<A, B, C, D, E, F, G, H>(
-  isA: Is<A>,
-  isB: Is<B>,
-  isC: Is<C>,
-  isD: Is<D>,
-  isE: Is<E>,
-  isF: Is<F>,
-  isG: Is<G>,
-  isH: Is<H>
-): (u: unknown, tracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A | B | C | D | E | F | G | H
+type UnionReturn<T extends Is<unknown>> = T extends Is<infer U> ? U : never;
+
 /**
  * Helper to create a type guard for a union with up to 5 options.
  *
@@ -285,17 +250,10 @@ export function isUnion<A, B, C, D, E, F, G, H>(
  * @example
  * const isBar2: Is<Bar> = isUnion(isString, isUnion(isNumber, isBigint))
  */
-export function isUnion<A, B, C, D, E, F, G>(
-  isA: Is<A>,
-  isB: Is<B>,
-  isC?: Is<C>,
-  isD?: Is<D>,
-  isE?: Is<E>,
-  isF?: Is<F>,
-  isG?: Is<G>
-): Is<A | B | C | D | E | F | G> {
-  return (u: unknown, parentTacker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>): u is A | B | C | D | E | F | G => {
-    const allTypeGuards = [isA, isB, isC, isD, isE, isF, isG]
+export function isUnion<T extends Is<unknown>[]>(
+  ...allTypeGuards: T
+): Is<UnionReturn<T[number]>> {
+  return (u: unknown, parentTacker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>): u is UnionReturn<T[number]> => {
     const tracker = parentTacker instanceof TypeguardNode ? parentTacker : new TypeguardNode('ROOT', 'union')
     tracker.type = 'union'
     for (const tg of allTypeGuards) {
