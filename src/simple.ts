@@ -108,43 +108,7 @@ export const isRecord = <K extends PropertyKey, V>(isK: Is<K>, isV: Is<V>): Is<R
   return true
 }
 
-export function isUnion<A, B>(isA: Is<A>, isB: Is<B>): (u: unknown) => u is A | B
-export function isUnion<A, B, C>(isA: Is<A>, isB: Is<B>, isC: Is<C>): (u: unknown) => u is A | B | C
-export function isUnion<A, B, C, D>(isA: Is<A>, isB: Is<B>, isC: Is<C>, isD: Is<D>): (u: unknown) => u is A | B | C | D
-export function isUnion<A, B, C, D, E>(
-  isA: Is<A>,
-  isB: Is<B>,
-  isC: Is<C>,
-  isD: Is<D>,
-  isE: Is<E>
-): (u: unknown) => u is A | B | C | D | E
-export function isUnion<A, B, C, D, E, F>(
-  isA: Is<A>,
-  isB: Is<B>,
-  isC: Is<C>,
-  isD: Is<D>,
-  isE: Is<E>,
-  isF: Is<F>
-): (u: unknown) => u is A | B | C | D | E | F
-export function isUnion<A, B, C, D, E, F, G>(
-  isA: Is<A>,
-  isB: Is<B>,
-  isC: Is<C>,
-  isD: Is<D>,
-  isE: Is<E>,
-  isF: Is<F>,
-  isG: Is<G>
-): (u: unknown) => u is A | B | C | D | E | F | G
-export function isUnion<A, B, C, D, E, F, G, H>(
-  isA: Is<A>,
-  isB: Is<B>,
-  isC: Is<C>,
-  isD: Is<D>,
-  isE: Is<E>,
-  isF: Is<F>,
-  isG: Is<G>,
-  isH: Is<H>
-): (u: unknown) => u is A | B | C | D | E | F | G | H
+type UnionTupleElements<T extends Is<unknown>[]> = T extends Array<Is<infer U>> ? U : never
 /**
  * Helper to create a type guard for a union with up to 5 options.
  *
@@ -154,18 +118,14 @@ export function isUnion<A, B, C, D, E, F, G, H>(
  * @example
  * type Bar = string | number | null
  * const isBar: Is<Bar> = isUnion(isString, isNumber, isNull)
- *
- * You can combine them if you need more than 5 options, like this:
- * @example
- * const isBar2: Is<Bar> = isUnion(isString, isUnion(isNumber, isBigint))
  */
-export function isUnion<A, B, C, D, E, F>(isA: Is<A>, isB: Is<B>, isC?: Is<C>, isD?: Is<D>, isE?: Is<E>, isF?: Is<F>) {
-  return (u: unknown): u is A | B | C | D | E | F =>
-    isA(u) || isB(u) || (isC && isC(u)) || (isD && isD(u)) || (isE && isE(u)) || (isF && isF(u)) || false
+
+export function isUnion<T extends Is<unknown>[]>(
+  ...allTypeGuards: T) {
+  return (u: unknown): u is Is<UnionTupleElements<T>> => allTypeGuards.some((isT) => isT(u))
 }
 
-export function isIntersection<A, B>(isA: Is<A>, isB: Is<B>): (u: unknown) => u is A & B
-export function isIntersection<A, B, C>(isA: Is<A>, isB: Is<B>, isC: Is<C>): (u: unknown) => u is A & B & C
+type IntersectTupleElements<T extends any[]> = { [I in keyof T]: (x: T[I]) => void }[number] extends (x: infer I) => void ? I : never;
 /**
  * Helper to create a type guard for the intersection of up to 3 types.
  * @example
@@ -175,8 +135,8 @@ export function isIntersection<A, B, C>(isA: Is<A>, isB: Is<B>, isC: Is<C>): (u:
  * interface Bar extends Foo { b: number }
  * const isBar: Is<Bar> = isIntersection(isFoo, isStruct({ b: isNumber }))
  */
-export function isIntersection<A, B, C>(isA: Is<A>, isB: Is<B>, isC?: Is<C>) {
-  return (u: unknown): u is A & B & C => isA(u) && isB(u) && (!isC || isC(u))
+export function isIntersection<T extends any[]>(...args: { [I in keyof T]: Is<T[I]> }): Is<IntersectTupleElements<T>> {
+  return (u: unknown): u is IntersectTupleElements<T> => args.every(isX => isX(u))
 }
 
 declare class NonEmptyStringTag {

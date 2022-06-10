@@ -64,7 +64,7 @@ describe('the type guards helper functions', () => {
   it('should be able to guard intersection types', () => {
     type Foo = { a: string }
     type Bar = { b: number }
-    type Baz = Foo | Bar
+    type Baz = Foo & Bar
     const isBaz: Is<Baz> = isIntersection(isStruct({ a: isString }), isStruct({ b: isNumber }))
     expect(isBaz({ a: 'A', b: 23 })).to.be.true
     expect(isBaz({ b: 23 })).to.be.false
@@ -96,6 +96,18 @@ describe('the type guards helper functions', () => {
     expect(isUndefinedOrNull(undefined)).to.be.true
     expect(isUndefinedOrNull(null)).to.be.true
     expect(isUndefinedOrNull(true)).to.be.false
+  })
+
+  it('should correctly test union types', () => {
+    expect(isUnion(isString, isNumber)(1)).to.be.true
+    expect(isUnion(isString, isNumber)('1')).to.be.true
+    expect(isUnion(isString, isNumber)(false)).to.be.false
+  })
+
+  it('should correctly test union types', () => {
+    expect(isUnion(isString, isNumber)(1)).to.be.true
+    expect(isUnion(isString, isNumber)('1')).to.be.true
+    expect(isUnion(isString, isNumber)(false)).to.be.false
   })
 })
 

@@ -234,10 +234,10 @@ export const isRecord =
       return true
     }
 
-type UnionReturn<T extends Is<unknown>> = T extends Is<infer U> ? U : never;
+type UnionTupleElements<T extends Is<unknown>[]> = T extends Array<Is<infer U>> ? U : never
 
 /**
- * Helper to create a type guard for a union with up to 5 options.
+ * Helper to create a type guard for a union with multiple options.
  *
  * @example
  * type Foo = string | number
@@ -245,15 +245,11 @@ type UnionReturn<T extends Is<unknown>> = T extends Is<infer U> ? U : never;
  * @example
  * type Bar = string | number | null
  * const isBar: Is<Bar> = isUnion(isString, isNumber, isNull)
- *
- * You can combine them if you need more than 5 options, like this:
- * @example
- * const isBar2: Is<Bar> = isUnion(isString, isUnion(isNumber, isBigint))
  */
 export function isUnion<T extends Is<unknown>[]>(
   ...allTypeGuards: T
-): Is<UnionReturn<T[number]>> {
-  return (u: unknown, parentTacker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>): u is UnionReturn<T[number]> => {
+): Is<UnionTupleElements<T>> {
+  return (u: unknown, parentTacker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>): u is UnionTupleElements<T> => {
     const tracker = parentTacker instanceof TypeguardNode ? parentTacker : new TypeguardNode('ROOT', 'union')
     tracker.type = 'union'
     for (const tg of allTypeGuards) {
@@ -273,17 +269,13 @@ export function isUnion<T extends Is<unknown>[]>(
   }
 }
 
-export function isIntersection<A, B>(
-  isA: Is<A>,
-  isB: Is<B>
-): (u: unknown, parentTracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A & B
-export function isIntersection<A, B, C>(
-  isA: Is<A>,
-  isB: Is<B>,
-  isC: Is<C>
-): (u: unknown, parentTracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>) => u is A & B & C
+type RepackagedTuple<T extends any[]> = { [J in keyof T]: (x: T[J]) => void }[number]
+
+type IntersectTupleElements<T extends any[]> = RepackagedTuple<T> extends (x: infer Q) => void ? Q : never;
+
+type TypeGuardOfTypeTuple<T extends any[]> = { [I in keyof T]: Is<T[I]> }
 /**
- * Helper to create a type guard for the intersection of up to 3 types.
+ * Helper to create a type guard for the intersection of multiple types.
  * @example
  * interface Foo { a: string }
  * const isFoo: Is<Foo> = isStruct({a: isString})
@@ -291,10 +283,10 @@ export function isIntersection<A, B, C>(
  * interface Bar extends Foo { b: number }
  * const isBar: Is<Bar> = isIntersection(isFoo, isStruct({ b: isNumber }))
  */
-export function isIntersection<A, B, C>(isA: Is<A>, isB: Is<B>, isC?: Is<C>): Is<A & B & C> {
-  return (u: unknown, parentTracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>): u is A & B & C => {
+export function isIntersection<TypeTuple extends any[]>(...args: TypeGuardOfTypeTuple<TypeTuple>): Is<IntersectTupleElements<TypeTuple>> {
+  return (u: unknown, parentTracker?: TypeguardNode | number, logger?: TypeguardLogger | Array<unknown>): u is IntersectTupleElements<TypeTuple> => {
     const tracker = parentTracker instanceof TypeguardNode ? parentTracker : new TypeguardNode('ROOT', 'Intersection')
-    for (const guard of [isA, isB, isC]) {
+    for (const guard of args) {
       if (!guard) {
         return true
       }
