@@ -122,7 +122,7 @@ type UnionTupleElements<T extends Is<unknown>[]> = T extends Array<Is<infer U>> 
 
 export function isUnion<T extends Is<unknown>[]>(
   ...allTypeGuards: T) {
-  return (u: unknown): u is Is<UnionTupleElements<T>> => allTypeGuards.some((isT) => isT(u))
+  return (u: unknown): u is UnionTupleElements<T> => allTypeGuards.some((isT) => isT(u))
 }
 
 type IntersectTupleElements<T extends any[]> = { [I in keyof T]: (x: T[I]) => void }[number] extends (x: infer I) => void ? I : never;
