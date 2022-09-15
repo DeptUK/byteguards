@@ -10,7 +10,8 @@
   "scripts": {
     "prepare": "tsc",
     "test": "VERBOSE_TYPEGUARDS=true nyc --reporter=json-summary mocha --require ts-node/register --ui bdd **/*.test.ts",
-    "coverage:badge": "coverage-badge-creator"
+    "coverage:badge": "coverage-badge-creator",
+    "deploy": "npm version patch && npm run build && npm publish --access public"
   },
   "author": "byte.london",
   "license": "ISC",

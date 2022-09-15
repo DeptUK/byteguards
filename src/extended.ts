@@ -167,7 +167,7 @@ export const isStruct = <O extends { [key: string]: unknown }>(
   isas: { [K in keyof O]: Is<O[K]> },
   name?: string
 ): Is<O> => {
-  if (!process.env.VERBOSE_TYPEGUARDS || process.env.VERBOSE_TYPEGUARDS.toLowerCase() === 'false') {
+  if (!process || !process.env.VERBOSE_TYPEGUARDS || process.env.VERBOSE_TYPEGUARDS.toLowerCase() === 'false') {
     return (o): o is O => {
       if (o === null || typeof o !== 'object') return false
 
